@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>退课功能调试测试</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+        }
+        .section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #6c757d; cursor: not-allowed; }
+        
+        .course-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        .course-item {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+            background: #f9f9f9;
+        }
+        .course-item.selected {
+            background-color: #e7f3ff;
+            border-color: #007bff;
+        }
+        
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: #007bff;
+        }
+        .timeline-item {
+            position: relative;
+            margin-bottom: 20px;
+            padding-left: 20px;
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -7px;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 退课功能完整调试分析</h1>
+    
+    <div class="container">
+        <div class="section">
+            <h3>1. 错误堆栈信息</h3>
+            <div id="error-stack" class="status info">
+                <p>等待测试数据...</p>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3>2. 前端课程选择状态数据</h3>
+            <div id="frontend-data" class="status info">
+                <p>正在获取课程数据...</p>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3>3. 详细复现步骤</h3>
+            <div class="info status">
+                <h4>标准操作流程：</h4>
+                <ol>
+                    <li>学生用户登录系统（用户ID: 202501）</li>
+                    <li>进入"已选课程"标签页</li>
+                    <li>查看已选课程列表，确认目标课程存在</li>
+                    <li>点击目标课程的"退选"按钮</li>
+                    <li>观察前端状态变化和后端响应</li>
+                </ol>
+                
+                <h4>触发时机：</h4>
+                <ul>
+                    <li>点击退选按钮后立即触发</li>
+                    <li>API请求返回响应后验证</li>
+                    <li>前端数据更新后检查同步状态</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3>4. 已选课程列表</h3>
+            <div id="course-list" class="course-list">
+                <p>正在加载课程数据...</p>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3>5. API请求测试</h3>
+            <div>
+                <label>学生ID：</label>
+                <input type="text" id="student-id" value="202501" placeholder="输入学生ID">
+                <label>课程ID：</label>
+                <input type="text" id="course-id" value="13" placeholder="输入课程ID">
+                <button onclick="testDropCourse()">测试退课API</button>
+                <button onclick="testLoadCourses()">重新加载课程</button>
+            </div>
+            <div id="api-result" class="status info">
+                <p>等待API测试...</p>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3>6. 前后端交互时序图</h3>
+            <div class="timeline" id="timeline">
+                <div class="timeline-item">
+                    <strong>前端事件触发</strong>
+                    <p>用户点击退选按钮</p>
+                </div>
+                <!-- 更多时序项目将通过JavaScript动态添加 -->
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3>7. 问题根源分析</h3>
+            <div id="root-cause" class="status info">
+                <p>等待数据分析...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let coursesData = [];
+        let userInfo = { id: '202501', name: '测试学生' };
+        
+        // 模拟API请求
+        async function apiRequest(url, method = 'GET', data = null) {
+            const options = {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            };
+            
+            if (data) {
+                options.body = JSON.stringify(data);
+            }
+            
+            try {
+                const response = await fetch(`http://localhost:3000${url}`, options);
+                const result = await response.json();
+                return result;
+            } catch (error) {
+                console.error('API请求失败:', error);
+                throw error;
+            }
+        }
+        
+        // 加载课程数据
+        async function loadCourses() {
+            addTimelineItem('开始加载课程数据', '前端');
+            
+            try {
+                // 模拟课程数据（实际应该从API获取）
+                coursesData = [
+                    {
+                        id: 13,
+                        name: '测试课程_张老师',
+                        credit: 3,
+                        time: '周一 8:00-10:00',
+                        description: '这是一个测试课程',
+                        maxStudents: 30,
+                        teacherId: 1001,
+                        teacherName: '张老师',
+                        students: ['202501', '202502']  // 测试数据
+                    },
+                    {
+                        id: 14,
+                        name: '测试课程_戴老师',
+                        credit: 2,
+                        time: '周三 14:00-16:00',
+                        description: '这是另一个测试课程',
+                        maxStudents: 25,
+                        teacherId: 1002,
+                        teacherName: '戴老师',
+                        students: ['202501']
+                    }
+                ];
+                
+                displayCourses();
+                updateFrontendData();
+                addTimelineItem('课程数据加载完成', '前端');
+                
+            } catch (error) {
+                document.getElementById('course-list').innerHTML = 
+                    `<div class="error status">加载失败: ${error.message}</div>`;
+                addTimelineItem('课程数据加载失败', '前端', error.message);
+            }
+        }
+        
+        // 显示课程列表
+        function displayCourses() {
+            const container = document.getElementById('course-list');
+            const selectedCourses = coursesData.filter(course => 
+                course.students && course.students.includes(userInfo.id)
+            );
+            
+            if (selectedCourses.length === 0) {
+                container.innerHTML = '<div class="warning status">暂无已选课程</div>';
+                return;
+            }
+            
+            container.innerHTML = selectedCourses.map(course => `
+                <div class="course-item selected">
+                    <h4>${course.name}</h4>
+                    <p><strong>课程ID:</strong> ${course.id}</p>
+                    <p><strong>教师:</strong> ${course.teacherName}</p>
+                    <p><strong>时间:</strong> ${course.time}</p>
+                    <p><strong>学分:</strong> ${course.credit}</p>
+                    <p><strong>当前学生:</strong> [${course.students.join(', ')}]</p>
+                    <button onclick="testDropCourseWithId(${course.id})" style="background-color: #dc3545;">
+                        退选课程
+                    </button>
+                </div>
+            `).join('');
+        }
+        
+        // 更新前端数据显示
+        function updateFrontendData() {
+            const frontendDiv = document.getElementById('frontend-data');
+            const selectedCourses = coursesData.filter(course => 
+                course.students && course.students.includes(userInfo.id)
+            );
+            
+            frontendDiv.innerHTML = `
+                <div class="success status">
+                    <h4>当前状态：</h4>
+                    <p><strong>用户ID:</strong> ${userInfo.id}</p>
+                    <p><strong>用户名:</strong> ${userInfo.name}</p>
+                    <p><strong>总课程数:</strong> ${coursesData.length}</p>
+                    <p><strong>已选课程数:</strong> ${selectedCourses.length}</p>
+                    <p><strong>已选课程:</strong></p>
+                    <ul>
+                        ${selectedCourses.map(c => `<li>${c.name} (ID:${c.id})</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+        
+        // 测试退课API
+        async function testDropCourse() {
+            const studentId = document.getElementById('student-id').value;
+            const courseId = document.getElementById('course-id').value;
+            testDropCourseWithId(courseId, studentId);
+        }
+        
+        async function testDropCourseWithId(courseId, studentId = null) {
+            const sid = studentId || userInfo.id;
+            const resultDiv = document.getElementById('api-result');
+            
+            // 清空之前的结果
+            resultDiv.innerHTML = '<div class="info status">正在测试退课API...</div>';
+            
+            addTimelineItem('发起退课请求', '前端', `课程ID: ${courseId}, 学生ID: ${sid}`);
+            
+            try {
+                // 构造请求数据
+                const requestData = {
+                    courseId: parseInt(courseId),
+                    studentId: parseInt(sid)
+                };
+                
+                addTimelineItem('发送API请求', '前端', JSON.stringify(requestData));
+                
+                // 模拟API调用（这里需要真实的后端API）
+                const response = await apiRequest('/api/pbl/dropCourse', 'POST', requestData);
+                
+                addTimelineItem('收到API响应', '后端', JSON.stringify(response));
+                
+                // 显示详细结果
+                displayApiResult(response, requestData);
+                
+                // 分析结果
+                analyzeApiResponse(response, requestData);
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error status">
+                        <h4>API请求失败</h4>
+                        <p><strong>错误信息:</strong> ${error.message}</p>
+                        <pre>${error.stack || '无堆栈信息'}</pre>
+                    </div>
+                `;
+                addTimelineItem('API请求失败', '前端', error.message);
+                updateRootCause('前端API请求失败', error.message);
+            }
+        }
+        
+        // 显示API结果
+        function displayApiResult(response, requestData) {
+            const resultDiv = document.getElementById('api-result');
+            
+            resultDiv.innerHTML = `
+                <div class="${response.success ? 'success' : 'error'} status">
+                    <h4>API响应结果：</h4>
+                    <p><strong>成功状态:</strong> ${response.success}</p>
+                    <p><strong>消息:</strong> ${response.message || response.error || '无消息'}</p>
+                    <p><strong>错误码:</strong> ${response.code || '无错误码'}</p>
+                    <p><strong>请求参数:</strong></p>
+                    <pre>${JSON.stringify(requestData, null, 2)}</pre>
+                    <p><strong>完整响应:</strong></p>
+                    <pre>${JSON.stringify(response, null, 2)}</pre>
+                </div>
+            `;
+        }
+        
+        // 分析API响应
+        function analyzeApiResponse(response, requestData) {
+            const courseId = requestData.courseId;
+            const studentId = requestData.studentId;
+            
+            // 检查课程存在性
+            const course = coursesData.find(c => c.id === courseId);
+            if (!course) {
+                updateRootCause('课程不存在', `课程ID ${courseId} 在前端数据中不存在`);
+                return;
+            }
+            
+            // 检查学生是否在课程中
+            const isInCourse = course.students && course.students.includes(String(studentId));
+            
+            if (!isInCourse) {
+                updateRootCause('前端状态不一致', 
+                    `学生ID ${studentId} 在课程 ${course.name} 中不存在，但前端仍显示为已选状态`);
+                return;
+            }
+            
+            // 检查API响应
+            if (!response.success && response.error && response.error.includes('未选择')) {
+                updateRootCause('后端验证逻辑问题', 
+                    '前端认为学生在课程中，但后端验证失败');
+            } else if (response.success) {
+                updateRootCause('测试成功', '退课操作执行成功');
+            }
+        }
+        
+        // 添加时序图项目
+        function addTimelineItem(action, source, details = '') {
+            const timeline = document.getElementById('timeline');
+            const item = document.createElement('div');
+            item.className = 'timeline-item';
+            item.innerHTML = `
+                <strong>${action}</strong>
+                <p>来源: ${source}${details ? `<br>详情: ${details}` : ''}</p>
+                <small>${new Date().toLocaleTimeString()}</small>
+            `;
+            timeline.appendChild(item);
+        }
+        
+        // 更新问题根源分析
+        function updateRootCause(issue, details) {
+            const rootDiv = document.getElementById('root-cause');
+            
+            let analysis = '';
+            let solution = '';
+            
+            switch(issue) {
+                case '课程不存在':
+                    analysis = '前端尝试退选一个不存在的课程';
+                    solution = '检查课程数据加载逻辑，确保课程ID正确';
+                    break;
+                    
+                case '前端状态不一致':
+                    analysis = '前端显示学生已选课程，但实际数据中不存在';
+                    solution = '修复前端状态管理逻辑，确保数据一致性';
+                    break;
+                    
+                case '后端验证逻辑问题':
+                    analysis = '后端存储过程验证逻辑有缺陷，无法正确识别学生';
+                    solution = '修复后端存储过程的JSON操作逻辑';
+                    break;
+                    
+                case '测试成功':
+                    analysis = '退课功能正常工作';
+                    solution = '无需修复';
+                    break;
+                    
+                default:
+                    analysis = '未知问题';
+                    solution = '需要进一步调查';
+            }
+            
+            rootDiv.innerHTML = `
+                <div class="warning status">
+                    <h4>问题根源：${issue}</h4>
+                    <p><strong>分析：</strong> ${analysis}</p>
+                    <p><strong>详情：</strong> ${details}</p>
+                    <p><strong>建议修复方案：</strong> ${solution}</p>
+                </div>
+            `;
+        }
+        
+        // 测试加载课程
+        function testLoadCourses() {
+            loadCourses();
+        }
+        
+        // 页面加载时初始化
+        window.onload = function() {
+            loadCourses();
+        };
+    </script>
+</body>
+</html>

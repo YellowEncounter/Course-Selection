@@ -1,0 +1,29 @@
+{
+  "name": "cocoroboLabor",
+  "main": "app.js",
+  "scripts": {
+    "autoStart": "supervisor start app.js",
+    "autoStop": "supervisor stop app.js",
+    "restart": "supervisor restart app.js",
+    "start": "supervisor start app.js",
+    "stop": "supervisor stop app.js",
+    "dev": "supervisor app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "BSD-2-Clause",
+  "private": true,
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "body-parser": "^1.20.2",
+    "express": "^5.1.0",
+    "inherits": "^2.0.4",
+    "morgan": "^1.10.0",
+    "mysql": "^2.18.1",
+    "request": "^2.88.2",
+    "require": "^2.4.20"
+  },
+  "devDependencies": {
+    "supervisor": "^0.12.0"
+  }
+}
